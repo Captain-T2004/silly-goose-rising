@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .connection-panel {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f8f8f8;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
+        .log-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .sent {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+        }
+        .received {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+        }
+        .error {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        .debug {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+        .token-display {
+            word-break: break-all;
+            font-family: monospace;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced WebSocket Test Client</h1>
+
+        <div class="connection-panel">
+            <h2>Connection Settings</h2>
+            <div class="input-group">
+                <label for="serverUrl">Server URL:</label>
+                <input type="text" id="serverUrl" value="http://localhost:3000" />
+            </div>
+
+            <div class="input-group">
+                <label for="token">JWT Token:</label>
+                <input type="text" id="token" placeholder="Paste your JWT token here" />
+            </div>
+
+            <div class="input-group">
+                <label for="connectionMethod">Connection Method:</label>
+                <select id="connectionMethod">
+                    <option value="auth">Auth Object</option>
+                    <option value="query">Query Parameter</option>
+                    <option value="header">Authorization Header</option>
+                    <option value="all">All Methods (Try All)</option>
+                </select>
+            </div>
+
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+
+            <div class="status-container">
+                <p>Status: <span id="status" class="status disconnected">Disconnected</span></p>
+                <p>Socket ID: <span id="socketId">None</span></p>
+                <p>Authenticated As: <span id="authUser">None</span></p>
+            </div>
+        </div>
+
+        <div class="connection-panel">
+            <h2>Message Sender</h2>
+            <div class="input-group">
+                <label for="messageContent">Message (JSON):</label>
+                <textarea id="messageContent" rows="8">
+{
+  "event": "join-route",
+  "data": {
+    "routeId": "route123"
+  }
+}
+</textarea>
+            </div>
+
+            <button id="sendBtn" disabled>Send Message</button>
+        </div>
+
+        <div class="connection-panel">
+            <h2>Token Decoder</h2>
+            <p>Decoded Token Payload:</p>
+            <div id="tokenDecoder" class="token-display">No token provided</div>
+        </div>
+
+        <div class="connection-panel">
+            <h2>Connection Log</h2>
+            <div id="logContainer" class="log-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusEl = document.getElementById('status');
+        const socketIdEl = document.getElementById('socketId');
+        const authUserEl = document.getElementById('authUser');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const tokenInput = document.getElementById('token');
+        const connectionMethodSelect = document.getElementById('connectionMethod');
+        const messageContentInput = document.getElementById('messageContent');
+        const logContainer = document.getElementById('logContainer');
+        const tokenDecoder = document.getElementById('tokenDecoder');
+
+        // Socket.IO instance
+        let socket = null;
+
+        // Utility Functions
+        function addLogEntry(type, message, data = null) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            const headerEl = document.createElement('div');
+            headerEl.style.fontWeight = 'bold';
+            headerEl.textContent = `[${timestamp}] ${message}`;
+            entry.appendChild(headerEl);
+
+            if (data) {
+                const contentEl = document.createElement('pre');
+                contentEl.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                entry.appendChild(contentEl);
+            }
+
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // Also log to console for debugging
+            console.log(`[${type.toUpperCase()}] ${message}`, data);
+        }
+
+        function decodeJwt(token) {
+            try {
+                if (!token) {
+                    tokenDecoder.textContent = "No token provided";
+                    return null;
+                }
+
+                // Split the token and get the payload part
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    tokenDecoder.textContent = "Invalid JWT format";
+                    return null;
+                }
+
+                // Decode the payload
+                const payload = JSON.parse(atob(parts[1]));
+                tokenDecoder.textContent = JSON.stringify(payload, null, 2);
+
+                return payload;
+            } catch (error) {
+                tokenDecoder.textContent = "Error decoding token: " + error.message;
+                return null;
+            }
+        }
+
+        // Event Listeners
+        tokenInput.addEventListener('input', () => {
+            decodeJwt(tokenInput.value);
+        });
+
+        connectBtn.addEventListener('click', () => {
+            if (socket && socket.connected) {
+                addLogEntry('error', 'Already connected. Please disconnect first.');
+                return;
+            }
+
+            const serverUrl = serverUrlInput.value;
+            const token = tokenInput.value;
+            const method = connectionMethodSelect.value;
+
+            // Decode and verify token before connecting
+            const decodedToken = decodeJwt(token);
+            if (decodedToken) {
+                addLogEntry('debug', 'Token appears valid', decodedToken);
+
+                // Check token expiration
+                const now = Math.floor(Date.now() / 1000);
+                if (decodedToken.exp && decodedToken.exp < now) {
+                    addLogEntry('error', 'Token is expired!', {
+                        expiresAt: new Date(decodedToken.exp * 1000).toLocaleString(),
+                        now: new Date().toLocaleString()
+                    });
+                }
+            } else {
+                addLogEntry('error', 'Token may be invalid or empty');
+            }
+
+            // Prepare connection options
+            const options = {};
+
+            if (token) {
+                addLogEntry('debug', `Connection method: ${method}`);
+
+                if (method === 'auth' || method === 'all') {
+                    options.auth = { token };
+                    addLogEntry('debug', 'Using auth object', options.auth);
+                }
+
+                if (method === 'query' || method === 'all') {
+                    options.query = { token };
+                    addLogEntry('debug', 'Using query parameter', options.query);
+                }
+
+                if (method === 'header' || method === 'all') {
+                    if (!options.extraHeaders) options.extraHeaders = {};
+                    options.extraHeaders.Authorization = `Bearer ${token}`;
+                    addLogEntry('debug', 'Using Authorization header', options.extraHeaders);
+                }
+            }
+
+            // Connection attempt
+            addLogEntry('debug', `Connecting to ${serverUrl}`, options);
+
+            try {
+                socket = io(serverUrl, options);
+
+                // Connection events
+                socket.on('connect', () => {
+                    addLogEntry('received', 'Connected to server!');
+                    statusEl.textContent = 'Connected';
+                    statusEl.className = 'status connected';
+                    socketIdEl.textContent = socket.id;
+
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                    sendBtn.disabled = false;
+
+                    // Additional connection debugging
+                    addLogEntry('debug', 'Socket.IO handshake completed', {
+                        transport: socket.io.engine.transport.name,
+                        protocol: socket.io.engine.protocol,
+                        id: socket.id
+                    });
+                });
+
+                socket.on('connect_error', (error) => {
+                    addLogEntry('error', 'Connection error', {
+                        message: error.message,
+                        description: error.description,
+                        type: error.type,
+                        context: error.context
+                    });
+
+                    statusEl.textContent = 'Error: ' + error.message;
+                    statusEl.className = 'status disconnected';
+                });
+
+                socket.on('disconnect', (reason) => {
+                    addLogEntry('received', 'Disconnected from server', { reason });
+                    statusEl.textContent = 'Disconnected: ' + reason;
+                    statusEl.className = 'status disconnected';
+                    socketIdEl.textContent = 'None';
+                    authUserEl.textContent = 'None';
+
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                    sendBtn.disabled = true;
+                });
+
+                // Welcome message processing
+                socket.on('welcome', (data) => {
+                    addLogEntry('received', 'Received welcome message', data);
+
+                    if (data.user) {
+                        authUserEl.textContent = data.user;
+
+                        if (data.user === 'anonymous') {
+                            addLogEntry('error', 'Authentication failed - connected as anonymous user');
+                        } else {
+                            addLogEntry('debug', 'Successfully authenticated', { as: data.user });
+                        }
+                    }
+                });
+
+                // Error handling
+                socket.on('error', (data) => {
+                    addLogEntry('error', 'Server reported an error', data);
+                });
+
+                // General event listener
+                socket.onAny((event, ...args) => {
+                    if (event !== 'welcome') { // We already handle welcome separately
+                        addLogEntry('received', `Received event: ${event}`, args);
+                    }
+                });
+
+            } catch (error) {
+                addLogEntry('error', 'Failed to initialize Socket.IO client', {
+                    message: error.message,
+                    stack: error.stack
+                });
+            }
+        });
+
+        disconnectBtn.addEventListener('click', () => {
+            if (!socket) {
+                addLogEntry('error', 'No active connection to disconnect');
+                return;
+            }
+
+            addLogEntry('debug', 'Manually disconnecting from server');
+            socket.disconnect();
+            socket = null;
+        });
+
+        sendBtn.addEventListener('click', () => {
+            if (!socket || !socket.connected) {
+                addLogEntry('error', 'Not connected to server');
+                return;
+            }
+
+            try {
+                const messageContent = messageContentInput.value.trim();
+                const messageData = JSON.parse(messageContent);
+
+                if (!messageData.event) {
+                    throw new Error('Message must include an "event" property');
+                }
+
+                addLogEntry('sent', `Sending event: ${messageData.event}`, messageData.data);
+                socket.emit(messageData.event, messageData.data);
+
+            } catch (error) {
+                addLogEntry('error', 'Failed to send message', {
+                    message: error.message,
+                    reason: error.name === 'SyntaxError' ? 'Invalid JSON format' : error.name
+                });
+            }
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up sample message
+            messageContentInput.value = JSON.stringify({
+                event: "join-route",
+                data: {
+                    routeId: "route123"
+                }
+            }, null, 2);
+
+            // Decode token if present
+            decodeJwt(tokenInput.value);
+        });
+    </script>
+</body>
+</html>
