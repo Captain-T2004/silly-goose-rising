@@ -17,6 +17,16 @@ module.exports = class FuelUsageModel {
     return collection.find({ routeId: new ObjectId(routeId) }).toArray();
   }
 
+  static async findByQuery(query) {
+    try {
+      const collection = await this.getCollection();
+      return collection.find(query).toArray();
+    } catch (error) {
+      console.error('Error in findByQuery:', error);
+      return [];
+    }
+  }
+
   static async create(fuelData) {
     if (typeof fuelData.routeId === 'string') {
       fuelData.routeId = new ObjectId(fuelData.routeId);
