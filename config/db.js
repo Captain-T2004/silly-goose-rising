@@ -141,6 +141,39 @@ async function initializeCollections(db) {
             weather: {
               bsonType: "object",
               description: "Weather conditions during journey"
+            },
+            cargoWeight: {
+              bsonType: "number",
+              description: "Weight of cargo in metric tons"
+            },
+            estimatedFuelConsumption: {
+              bsonType: "number",
+              description: "Estimated fuel consumption for the route"
+            },
+            waypoints: {
+              bsonType: "array",
+              description: "Route waypoints as coordinates"
+            },
+            averageSpeed: {
+              bsonType: "number",
+              description: "Average speed in km/h"
+            },
+            routeType: {
+              bsonType: "string",
+              description: "Type of route optimization strategy"
+            },
+            status: {
+              bsonType: "string",
+              description: "Current status of the route",
+              enum: ["planned", "in-progress", "completed", "cancelled"]
+            },
+            createdAt: {
+              bsonType: "date",
+              description: "Creation timestamp"
+            },
+            lastUpdate: {
+              bsonType: "date",
+              description: "Last update timestamp"
             }
           }
         }
