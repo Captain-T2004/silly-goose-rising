@@ -32,6 +32,41 @@ async function connectDB() {
 async function initializeCollections(db) {
   const collections = await db.listCollections().toArray();
   const collectionNames = collections.map(c => c.name);
+  if (!collectionNames.includes('users')) {
+      await db.createCollection('users', {
+        validator: {
+          $jsonSchema: {
+            bsonType: "object",
+            required: ["name", "email", "password", "role"],
+            properties: {
+              name: {
+                bsonType: "string",
+                description: "User's name - required"
+              },
+              email: {
+                bsonType: "string",
+                description: "User's email - required"
+              },
+              password: {
+                bsonType: "string",
+                description: "User's hashed password - required"
+              },
+              role: {
+                bsonType: "string",
+                description: "User's role - required",
+                enum: ["user", "manager", "admin"]
+              },
+              createdAt: {
+                bsonType: "date",
+                description: "Account creation timestamp"
+              }
+            }
+          }
+        }
+      });
+      console.log("Users collection created");
+      await db.collection('users').createIndex({ email: 1 }, { unique: true });
+  }
 
   if (!collectionNames.includes('ships')) {
     await db.createCollection('ships', {

@@ -2,7 +2,12 @@ const express = require('express');
 const app = express();
 const dotenv = require('dotenv');
 dotenv.config();
-const env = process.env;
+
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not defined');
+  process.exit(1);
+}
+
 const { connectDB } = require('./config/db');
 
 app.use(express.json());
