@@ -39,6 +39,7 @@ app.use((err, req, res, next) => {
     error: 'Server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
+  next();
 });
 
 const startServer = async () => {

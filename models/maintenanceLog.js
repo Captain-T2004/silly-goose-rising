@@ -48,16 +48,6 @@ module.exports = class MaintenanceLogModel {
     );
   }
 
-  static async findByQuery(query) {
-    try {
-      const collection = await this.getCollection();
-      return collection.find(query).toArray();
-    } catch (error) {
-      console.error('Error in findByQuery:', error);
-      return [];
-    }
-  }
-
   static async findRecentMaintenance(shipId = null, limit = 10) {
     const collection = await this.getCollection();
     const query = shipId ? { shipId } : {};

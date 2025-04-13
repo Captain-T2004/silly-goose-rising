@@ -4,7 +4,6 @@ const {
   FuelUsageModel,
   MaintenanceLogModel
 } = require('../models');
-const routeOptimizationService = require('../services/routeOptimizationService');
 const aiOptimizationService = require('../services/aiOptimizationService');
 const weatherService = require('../services/weatherService');
 
@@ -235,15 +234,6 @@ const generateAlternativeRoutes = async (req, res) => {
     });
 
     const fuelData = await FuelUsageModel.findByShipId(shipId);
-
-    const baseRoute = {
-      startLocation,
-      endLocation,
-      waypoints: [
-        [startLocation.lon, startLocation.lat],
-        [endLocation.lon, endLocation.lat]
-      ]
-    };
 
     const weatherData = await weatherService.getRouteWeather(
       [startLocation, endLocation],
@@ -479,9 +469,6 @@ async function checkMaintenanceNeeded(shipId, lastRouteDistance, lastRouteDurati
     const completedRoutes = routes.filter(r => r.status === 'completed');
 
     const maintenanceHistory = await MaintenanceLogModel.findByShipId(shipId);
-
-    const totalMileage = completedRoutes.reduce((sum, route) => sum + (route.distance || 0), 0);
-    const totalEngineHours = completedRoutes.reduce((sum, route) => sum + (route.timeTaken || route.duration || 0), 0);
 
     const updatedEngineHours = (ship.engineHours || 0) + lastRouteDuration;
     await ShipModel.update(shipId, {

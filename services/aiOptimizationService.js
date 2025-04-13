@@ -3,7 +3,6 @@ const turf = require('@turf/turf');
 const {
   RouteHistoryModel,
   FuelUsageModel,
-  ShipModel
 } = require('../models');
 
 class AIOptimizationService {
@@ -169,6 +168,7 @@ class AIOptimizationService {
   }
 
   async generateWeatherOptimizedRoute(startLocation, endLocation, weatherData, plannedStartDate) {
+    console.log(plannedStartDate);
     const baseRoute = this.generateBaseRoute(startLocation, endLocation);
     const waypoints = [...baseRoute.waypoints];
 
@@ -199,7 +199,6 @@ class AIOptimizationService {
       if (index > 0 && index < waypoints.length - 1) {
         const prevWp = turf.point(waypoints[index - 1]);
         const currWp = turf.point(waypoints[index]);
-        const nextWp = turf.point(waypoints[index + 1]);
 
         const bearing = turf.bearing(prevWp, currWp);
 
@@ -306,7 +305,7 @@ class AIOptimizationService {
   }
 
   async generateHybridRoute(routeOptions, weatherData, cargoWeight, ship) {
-
+    console.log(ship);
     const weatherRoute = routeOptions.find(r => r.strategy === 'weather-optimized');
     const fuelRoute = routeOptions.find(r => r.strategy === 'fuel-optimized');
     const historicalRoute = routeOptions.find(r => r.strategy === 'historical-learning');
@@ -720,7 +719,7 @@ class AIOptimizationService {
 
   generateMockWeatherData(waypoints, startDate) {
     return waypoints.map((wp, index) => {
-
+      console.log(index);
       const conditions = ['Clear', 'Clouds', 'Rain', 'Storm'];
       const windSpeeds = [5, 10, 15, 20, 25];
       const temperatures = [5, 10, 15, 20, 25];

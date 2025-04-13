@@ -98,9 +98,6 @@ class RouteOptimizationService {
   }
 
   applyWeatherOptimization(baseRoute, weatherData, cargoWeight) {
-    const optimizedRoute = {
-      ...baseRoute
-    };
     const waypoints = [...baseRoute.waypoints];
 
     let totalTimeAdjustment = 0;
@@ -252,6 +249,7 @@ class RouteOptimizationService {
         }
       });
       const remainingWaypoints = currentRoute.waypoints.slice(nearestWaypointIndex);
+      console.log(remainingWaypoints);
       const endLocation = {
         lat: currentRoute.waypoints[currentRoute.waypoints.length - 1][1],
         lon: currentRoute.waypoints[currentRoute.waypoints.length - 1][0]

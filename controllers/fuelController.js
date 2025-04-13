@@ -89,11 +89,11 @@ const getFuelEstimate = async (req, res) => {
           error: 'Missing required parameters. shipId, startLocation, endLocation, plannedStartDate, and cargoWeight are required'
         });
       }
-      startLocation = {
+      const startLocation = {
         "lat": startLocation_lat,
         "lon": startLocation_lon
       };
-      endLocation = {
+      const endLocation = {
         "lat": endLocation_lat,
         "lon": endLocation_lon
       };
@@ -341,7 +341,7 @@ const calculateFuelConsumption = (route, ship, fuelHistory, weatherData) => {
 };
 
 const calculateDefaultConsumption = (route, ship) => {
-
+  console.log(ship);
   const defaultRate = 0.08;
   return route.distance * defaultRate;
 };

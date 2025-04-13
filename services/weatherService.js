@@ -89,9 +89,6 @@ class WeatherService {
   async getRouteWeather(waypoints, startDate, endDate) {
     try {
       const weatherData = [];
-
-      const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-
       for (const point of waypoints) {
         const forecast = await this.getForecast(point.lat, point.lon);
         weatherData.push({

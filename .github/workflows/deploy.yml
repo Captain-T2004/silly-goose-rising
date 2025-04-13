@@ -1,0 +1,64 @@
+name: Lint, Test, Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm test
+
+  deploy:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Add SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd ~/silly-goose-rising
+
+            echo "${{ secrets.PRODUCTION_ENV }}" > production.env
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Stopping existing container (if any)..."
+            docker stop shippp || true
+            docker rm shippp || true
+
+            echo "Building Docker image..."
+            docker build -t ship-route .
+
+            echo "Running new container..."
+            docker run -d --restart=always -p 80:3000 --name shippp --env-file=production.env ship-route
+          EOF

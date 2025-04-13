@@ -1,5 +1,4 @@
 const { connectDB } = require('../config/db');
-const { ObjectId } = require('mongodb');
 
 module.exports = class ShipModel {
   static async getCollection() {

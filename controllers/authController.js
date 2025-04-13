@@ -133,7 +133,7 @@ const refreshAccessToken = async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     const user = await UserModel.findByRefreshToken(refreshToken);
     if (!user) {
