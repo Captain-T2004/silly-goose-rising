@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const app = express();
 const dotenv = require('dotenv');
-dotenv.config();
+dotenv.config({ path: './production.env' });
 
 if (!process.env.JWT_SECRET) {
   console.error('FATAL ERROR: JWT_SECRET is not defined');
