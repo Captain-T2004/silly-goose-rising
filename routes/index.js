@@ -13,7 +13,8 @@ const {
   updateRouteWeather,
   completeRoute,
   getOptimalSpeed,
-  scheduleMaintenance
+  scheduleMaintenance,
+  registerShip
 } = require('../controllers/routePlanController');
 const {
   register,
@@ -43,6 +44,7 @@ router.post('/maintenance/schedule', protect, scheduleMaintenance);
 router.get('/analytics', protect, getAnalytics);
 
 // Route planning routes
+router.post('/ships/register', protect, registerShip);
 router.post('/route-plan', protect, createRoutePlan);
 router.get('/ships/:shipId/routes', protect, getShipRoutes);
 router.get('/routes/:routeId', protect, getRouteById);

@@ -7,6 +7,67 @@ const {
 const aiOptimizationService = require('../services/aiOptimizationService');
 const weatherService = require('../services/weatherService');
 
+const registerShip = async (req, res) => {
+  try {
+    const {
+      shipId,
+      capacity,
+      fuelType,
+      engineHours,
+      type
+    } = req.body;
+
+    if (!shipId || capacity === undefined || !fuelType || engineHours === undefined) {
+      return res.status(400).json({
+        error: 'Required fields missing. shipId, capacity, fuelType, and engineHours are required'
+      });
+    }
+
+    if (typeof shipId !== 'string' || typeof fuelType !== 'string') {
+      return res.status(400).json({
+        error: 'Invalid data types. shipId and fuelType must be strings'
+      });
+    }
+
+    if (typeof capacity !== 'number' || typeof engineHours !== 'number') {
+      return res.status(400).json({
+        error: 'Invalid data types. capacity and engineHours must be numbers'
+      });
+    }
+
+    const existingShip = await ShipModel.findById(shipId);
+    if (existingShip) {
+      return res.status(409).json({
+        error: 'Ship with this ID already exists'
+      });
+    }
+
+    const shipData = {
+      shipId,
+      capacity,
+      fuelType,
+      engineHours,
+      lastUpdated: new Date()
+    };
+
+    if (type) {
+      shipData.type = type;
+    }
+
+    await ShipModel.create(shipData);
+
+    res.status(201).json({
+      message: 'Ship registered successfully',
+      ship: shipData
+    });
+  } catch (error) {
+    console.error('Error registering ship:', error);
+    res.status(500).json({
+      error: 'Failed to register ship'
+    });
+  }
+};
+
 const createRoutePlan = async (req, res) => {
   try {
     const {
@@ -873,5 +934,6 @@ module.exports = {
   updateRouteWeather,
   completeRoute,
   getOptimalSpeed,
-  scheduleMaintenance
+  scheduleMaintenance,
+  registerShip
 };
