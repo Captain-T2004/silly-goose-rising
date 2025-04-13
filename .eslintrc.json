@@ -5,8 +5,15 @@
     "es2021": true,
     "node": true
   },
-  "extends": "eslint:recommended",
-  "overrides": [],
+  "extends": ["eslint:recommended"],
+  "overrides": [
+    {
+      "files": ["**/*.test.js", "**/__tests__/**/*.js"],
+      "env": {
+        "jest": true
+      }
+    }
+  ],
   "parserOptions": {
     "ecmaVersion": "latest"
   },
